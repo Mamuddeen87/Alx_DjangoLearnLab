@@ -1,15 +1,15 @@
 from django import forms
 from .models import Book
 
-class BookForm(forms.ModelForm):
+class ExampleForm(forms.ModelForm):  # <-- renamed to ExampleForm
     class Meta:
         model = Book
-        fields = ['title', 'author', 'publication_date']  # adjust fields based on your model
+        fields = ['title', 'author', 'publication_date']  # adjust fields as needed
 
-    # Optional: add validation
     def clean_title(self):
         title = self.cleaned_data.get('title')
         if not title:
             raise forms.ValidationError("Title cannot be empty.")
         return title
+
 
