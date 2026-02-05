@@ -10,6 +10,31 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
+
+@permission_required('relationship_app.can_create', raise_exception=True)
+def create_book(request):
+    if request.method == "POST":
+        # handle form submission
+        pass
+    return render(request, "create_book.html")
+
+@permission_required('relationship_app.can_edit', raise_exception=True)
+def edit_book(request, book_id):
+    book = get_object_or_404(Book, id=book_id)
+    # handle edit form
+    return render(request, "edit_book.html", {"book": book})
+
+@permission_required('relationship_app.can_delete', raise_exception=True)
+def delete_book(request, book_id):
+    book = get_object_or_404(Book, id=book_id)
+    book.delete()
+    return redirect("list_books")
+
+@permission_required('relationship_app.can_view', raise_exception=True)
+def list_books(request):
+    books = Book.objects.all()
+    return render(request, "list_books.html", {"books": books})
 
 # Function-based view to list all books
 def list_books(request):
