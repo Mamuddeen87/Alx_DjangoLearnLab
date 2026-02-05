@@ -122,4 +122,3 @@ LOGOUT_REDIRECT_URL = 'login'      # Redirect to login page after logout
 
 # At the bottom of settings.py
 AUTH_USER_MODEL = 'relationship_app.CustomUser'
-
