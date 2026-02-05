@@ -16,7 +16,15 @@ class Book(models.Model):
         Author,
         on_delete=models.CASCADE,
         related_name='books'
-    )
+        )
+    published_date = models.DateField()
+
+    class Meta:
+        permissions = [
+                ("can_add_book", "Can add book"),
+                ("can_change_book", "Can change book"),
+                ("can_delete_book", "Can delete book"),
+                ]
 
     def __str__(self):
         return self.title
