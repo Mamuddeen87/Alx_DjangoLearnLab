@@ -25,3 +25,6 @@ def profile(request):
         form = UserUpdateForm(instance=request.user)
 
     return render(request, "blog/profile.html", {"form": form})
+
+def home(request):
+    return redirect("register")
