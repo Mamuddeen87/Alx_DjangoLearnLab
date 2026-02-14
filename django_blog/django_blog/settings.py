@@ -121,6 +121,6 @@ STATICFILES_DIRS = [
         ] 
 
 #Overiding the login and logout urls
-LOGIN_REDIRECT_URL = "profile"
+LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
 LOGIN_URL = "login"
