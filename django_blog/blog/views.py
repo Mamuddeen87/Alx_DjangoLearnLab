@@ -44,7 +44,7 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     template_name = "blog/post_confirm_delete.html"
     success_url = reverse_lazy("home")
 
-    def test_funs(self):
+    def test_func(self):
         post = self.get_object()
         return self.request.user == post.author #only author can delete 
 

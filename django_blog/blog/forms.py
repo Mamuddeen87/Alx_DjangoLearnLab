@@ -5,9 +5,9 @@ from django.contrib.auth.models import User
 class RegistrationForm(UserCreationForm):
     email = forms.EmailField()
 
-    class meta:
+    class Meta:
         model = User
-        fields = ["Username", "email", "password1", "password2"]
+        fields = ["username", "email", "password1", "password2"]
 
 class UserUpdateForm(forms.ModelForm):
     email = forms.EmailField()
@@ -15,3 +15,5 @@ class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ["username", "email"]
+
+    

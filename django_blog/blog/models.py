@@ -8,8 +8,11 @@ class Post(models.Model):
     author = models.ForeignKey(
             User, 
             on_delete=models.CASCADE,
-            related_name = "post"
+            related_name = "posts"
             )
+    def get_absolute_url(self):
+        return reverse("post_detail", kwargs={"pk": self.pk})
+
     def __str__(self):
         return self.title
 
@@ -35,3 +38,16 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
+
+class Comment(models.Model):
+    post = models.ForeignKey(
+            Post, 
+            on_delete=models.CASCADE,
+            )
+    author = models.ForeignKey(
+            User,
+            on_delete=models.CASCADE,
+            )
+    content = models.TextField
+    created_at = models.DateTimeField
+    updated_at = models.DateTimeField
