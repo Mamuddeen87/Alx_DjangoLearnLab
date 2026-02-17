@@ -40,6 +40,7 @@ class LoginView(ObtainAuthToken):
             "user_id": token.user_id,
             "username": token.user.username,
         })
+
 class FollowUserView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -69,15 +70,4 @@ class UnfollowUserView(APIView):
 
         request.user.following.remove(target_user)
         return Response({"message": f"You have unfollowed {username}"}, status=status.HTTP_200_OK)
-
-class FeedView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        # Get all users the current user follows
-        followed_users = request.user.following.all()
-        # Get all posts by followed users, newest first
-        posts = Post.objects.filter(author__in=followed_users).order_by('-created_at')
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
 
