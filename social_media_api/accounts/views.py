@@ -8,6 +8,7 @@ from .serializers import RegisterSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 
 User = get_user_model()
 
@@ -39,4 +40,44 @@ class LoginView(ObtainAuthToken):
             "user_id": token.user_id,
             "username": token.user.username,
         })
+class FollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, username):
+        try:
+            target_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if target_user == request.user:
+            return Response({"error": "You cannot follow yourself"}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.following.add(target_user)
+        return Response({"message": f"You are now following {username}"}, status=status.HTTP_200_OK)
+
+class UnfollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, username):
+        try:
+            target_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if target_user == request.user:
+            return Response({"error": "You cannot unfollow yourself"}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.following.remove(target_user)
+        return Response({"message": f"You have unfollowed {username}"}, status=status.HTTP_200_OK)
+
+class FeedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get all users the current user follows
+        followed_users = request.user.following.all()
+        # Get all posts by followed users, newest first
+        posts = Post.objects.filter(author__in=followed_users).order_by('-created_at')
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
 
