@@ -1,87 +1,98 @@
-from django.shortcuts import render
-from rest_framework import viewsets, permissions
-from .models import Post, Comment
-from .serializers import PostSerializer, CommentSerializer
-from rest_framework import filters
-from rest_framework import generics, permissions, status
+from rest_framework import viewsets, generics, permissions, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.contrib.contenttypes.models import ContentType
 
-from .models import Post, Like
+from .models import Post, Comment, Like
+from .serializers import PostSerializer, CommentSerializer
 from notifications.models import Notification
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
-    """
-    Custom permission: Only owners can edit/delete.
-    """
 
-    def has_object_permission(self, request, view, obj):
-        # Read permissions are allowed to anyone
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        # Write permissions only to the author
-        return obj.author == request.user
-
+# -----------------------------
+# POST CRUD
+# -----------------------------
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
-    
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['title', 'content'] 
-    
+    permission_classes = [permissions.IsAuthenticated]
+
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
+    def perform_update(self, serializer):
+        # Only author can update
+        if self.get_object().author != self.request.user:
+            raise PermissionError("You cannot edit someone else's post.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
+            raise PermissionError("You cannot delete someone else's post.")
+        instance.delete()
+
+
+# -----------------------------
+# COMMENT CRUD
+# -----------------------------
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all().order_by('created_at')
+    queryset = Comment.objects.all().order_by('-created_at')
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .models import Post
-from .serializers import PostSerializer
+        comment = serializer.save(author=self.request.user)
+
+        # Create notification for post author
+        if comment.post.author != self.request.user:
+            Notification.objects.create(
+                recipient=comment.post.author,
+                actor=self.request.user,
+                verb="commented on your post",
+                content_type=ContentType.objects.get_for_model(comment.post),
+                object_id=comment.post.id
+            )
+
+    def perform_update(self, serializer):
+        if self.get_object().author != self.request.user:
+            raise PermissionError("You cannot edit someone else's comment.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
+            raise PermissionError("You cannot delete someone else's comment.")
+        instance.delete()
 
 
-class FeedView(APIView):
-    """
-    Returns posts from users the current user follows,
-    ordered by newest first.
-    """
-    permission_classes = [IsAuthenticated]
+# -----------------------------
+# FEED
+# -----------------------------
+class FeedView(generics.ListAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request):
-        # Get users the current user is following
-        following_users = request.user.following.all()
+    def get_queryset(self):
+        # Users that current user follows
+        following_users = self.request.user.following.all()
+        # Posts from those users, newest first
+        return Post.objects.filter(author__in=following_users).order_by('-created_at')
 
-        # Get posts from those users ordered by newest first
-        posts = Post.objects.filter(author__in=following_users).order_by('-created_at')
 
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+# -----------------------------
+# LIKE / UNLIKE
+# -----------------------------
 class LikePostView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Post.objects.all()
 
-    def post(self, request, post_id):
-        post = get_object_or_404(Post, id=post_id)
+    def post(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
 
-        # Prevent duplicate likes
         if Like.objects.filter(user=request.user, post=post).exists():
-            return Response(
-                {"detail": "You already liked this post."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "You already liked this post."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        # Create Like
         Like.objects.create(user=request.user, post=post)
 
-        # Create Notification (if not liking own post)
         if post.author != request.user:
             Notification.objects.create(
                 recipient=post.author,
@@ -91,29 +102,21 @@ class LikePostView(generics.GenericAPIView):
                 object_id=post.id
             )
 
-        return Response(
-            {"detail": "Post liked successfully."},
-            status=status.HTTP_201_CREATED
-        )
+        return Response({"detail": "Post liked successfully."}, status=status.HTTP_201_CREATED)
+
+
 class UnlikePostView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Post.objects.all()
 
-    def post(self, request, post_id):
-        post = get_object_or_404(Post, id=post_id)
-
+    def post(self, request, pk):
+        post = get_object_or_404(Post, pk=pk)
         like = Like.objects.filter(user=request.user, post=post)
 
         if not like.exists():
-            return Response(
-                {"detail": "You have not liked this post."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "You have not liked this post."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         like.delete()
-
-        return Response(
-            {"detail": "Post unliked successfully."},
-            status=status.HTTP_200_OK
-        )
+        return Response({"detail": "Post unliked successfully."}, status=status.HTTP_200_OK)
 
