@@ -9,20 +9,20 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
-
-User = get_user_model()
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import CustomUser
+from .models import User
+from django.contrib.contenttypes.models import ContentType
+from notifications.models import Notification
 
+User = get_user_model()
 
 class FollowUserView(generics.GenericAPIView):
     """
     Allows authenticated users to follow another user.
     """
-    queryset = CustomUser.objects.all()
+    queryset = User.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, username):
@@ -35,6 +35,14 @@ class FollowUserView(generics.GenericAPIView):
             )
 
         request.user.following.add(user_to_follow)
+        if user_to_follow != request.user:
+            Notification.objects.create(
+                    recipient=user_to_follow,
+                    actor=request.user,
+                    verb="started following you",
+                    content_type=ContentType.objects.get_for_model(user_to_follow),
+                    object_id=user_to_follow.id
+                    )
 
         return Response(
             {"detail": f"You are now following {username}."},
@@ -46,7 +54,7 @@ class UnfollowUserView(generics.GenericAPIView):
     """
     Allows authenticated users to unfollow another user.
     """
-    queryset = CustomUser.objects.all()
+    queryset = User.objects.all()
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, username):
