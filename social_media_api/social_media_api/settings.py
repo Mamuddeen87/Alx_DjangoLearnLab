@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = False #config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False") == "True"
+DEBUG = False 
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")
 
@@ -82,12 +82,19 @@ WSGI_APPLICATION = "social_media_api.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'ENGINE' : 'PostgreSQL',
+        'DB_NAME' : u'mmul_qura_community',
+        'USER' : 'postgres',
+        'PASSWORD' : 'Mamuddeen8'
+        'HOST' : 'ummul-qura-community.ca9284s0gqgw.us-east-1.rds.amazonaws.com',
+        'PORT' : '5432',
+
+     #   'ENGINE': 'django.db.backends.postgresql',
+      #  'NAME': os.environ.get('DB_NAME'),
+       # 'USER': os.environ.get('DB_USER'),
+        #'PASSWORD': os.environ.get('DB_PASSWORD'),
+       # 'HOST': os.environ.get('DB_HOST'),
+        #'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -202,9 +209,4 @@ LOGGING = {
    # send_default_pii=True
 #)
 
-# urls.py
-from django.http import JsonResponse
-
-def health_check(request):
-    return JsonResponse({'status': 'ok'})
 
