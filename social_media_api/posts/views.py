@@ -90,10 +90,7 @@ class LikePostView(generics.GenericAPIView):
         post = generics.get_object_or_404(Post, pk=pk)
 
         # Create like if it doesn't exist
-        like, created = Like.objects.get_or_create(
-            user=request.user,
-            post=post
-        )
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
 
         # If like was newly created, create notification
         if created and post.author != request.user:
